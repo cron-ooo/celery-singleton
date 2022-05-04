@@ -43,6 +43,7 @@ class RedisBackend(BaseBackend):
             self.redis = sentinel.master_for(broker_transport_options['master_name'])
 
         else:
+            kwargs.pop('broker_transport_options')
             self.redis = Redis.from_url(*args, decode_responses=True, **kwargs)
 
     def lock(self, lock, task_id, expiry=None):
