@@ -1,28 +1,28 @@
 from redis import Redis
 from redis.sentinel import Sentinel
-
-import re
+from urllib.parse import urlparse
 
 from .base import BaseBackend
 
 
 class ParseSentinelURL(object):
+    default_port = 26379
+
     def __init__(self, sentinel_url):
-        self.sentinel_url = sentinel_url
-        self.default_port = 26379
+        self.urls = [
+            url for url in sentinel_url.split(";")
+            if url.startswith(r"sentinel://")
+        ]
 
-    def parse(self):
-        sentinel_config = list()
-
-        for url in self.sentinel_url.split(";"):
-            host = re.search(r"(?<=@)(.+?)(?=:|;|$)", url)
-            host = host.group() if host else None
-
-            port = re.search(r"(?<=:)(\d+)(?=;|$)", url)
-            port = int(port.group()) if port else self.default_port
-            sentinel_config.append((host, port))
-        return sentinel_config
-
+        parsed_urls = [
+            urlparse(url)
+            for url in self.urls
+        ]
+        self.sentinels = [
+            (instance.hostname, instance.port or self.default_port)
+            for instance in parsed_urls
+        ]
+        self.password = parsed_urls[0].password
 
 class RedisBackend(BaseBackend):
     def __init__(self, *args, **kwargs):
@@ -31,19 +31,19 @@ class RedisBackend(BaseBackend):
         """
 
         if args[0].startswith(r"sentinel://"):
-            sentinel_config = ParseSentinelURL(sentinel_url=args[0]).parse()
-            broker_transport_options = kwargs['broker_transport_options']
-            sentinel_kwargs = broker_transport_options.get('sentinel_kwargs')
-            sentinel_password = sentinel_kwargs.get('password') if isinstance(sentinel_kwargs, dict) else None
+            sentinel_config = ParseSentinelURL(sentinel_url=args[0])
+            broker_transport_options = kwargs["broker_transport_options"]
+            sentinel_kwargs = broker_transport_options.get("sentinel_kwargs")
+            sentinel_password = sentinel_kwargs.get("password") if isinstance(sentinel_kwargs, dict) else None
 
-            sentinel = Sentinel(sentinel_config,
+            sentinel = Sentinel(sentinel_config.sentinels,
                                 sentinel_kwargs=sentinel_kwargs,
-                                password=sentinel_password)
+                                password=sentinel_config.password)
             
-            self.redis = sentinel.master_for(broker_transport_options['master_name'])
+            self.redis = sentinel.master_for(broker_transport_options["master_name"])
 
         else:
-            kwargs.pop('broker_transport_options')
+            kwargs.pop("broker_transport_options")
             self.redis = Redis.from_url(*args, decode_responses=True, **kwargs)
 
     def lock(self, lock, task_id, expiry=None):
