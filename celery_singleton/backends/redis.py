@@ -34,7 +34,6 @@ class RedisBackend(BaseBackend):
             sentinel_config = ParseSentinelURL(sentinel_url=args[0])
             broker_transport_options = kwargs["broker_transport_options"]
             sentinel_kwargs = broker_transport_options.get("sentinel_kwargs")
-            sentinel_password = sentinel_kwargs.get("password") if isinstance(sentinel_kwargs, dict) else None
 
             sentinel = Sentinel(sentinel_config.sentinels,
                                 sentinel_kwargs=sentinel_kwargs,
@@ -43,7 +42,6 @@ class RedisBackend(BaseBackend):
             self.redis = sentinel.master_for(broker_transport_options["master_name"])
 
         else:
-            kwargs.pop("broker_transport_options")
             self.redis = Redis.from_url(*args, decode_responses=True, **kwargs)
 
     def lock(self, lock, task_id, expiry=None):
