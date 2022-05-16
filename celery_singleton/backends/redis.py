@@ -32,7 +32,7 @@ class RedisBackend(BaseBackend):
 
         if args[0].startswith(r"sentinel://"):
             sentinel_config = ParseSentinelURL(sentinel_url=args[0])
-            broker_transport_options = kwargs["broker_transport_options"]
+            broker_transport_options = kwargs.get("broker_transport_options")
             sentinel_kwargs = broker_transport_options.get("sentinel_kwargs")
 
             sentinel = Sentinel(sentinel_config.sentinels,

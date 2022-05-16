@@ -37,7 +37,7 @@ class Config:
 
     @property
     def broker_transport_options(self):
-        return self.app.conf.get('broker_transport_options')
+        return self.app.conf.get("broker_transport_options", {})
 
     @property
     def raise_on_duplicate(self):
