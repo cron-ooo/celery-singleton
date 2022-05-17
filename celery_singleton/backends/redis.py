@@ -25,14 +25,13 @@ class ParseSentinelURL(object):
         self.password = parsed_urls[0].password
 
 class RedisBackend(BaseBackend):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, broker_transport_options={}, **kwargs):
         """
         args and kwargs are forwarded to redis.from_url
         """
 
         if args[0].startswith(r"sentinel://"):
             sentinel_config = ParseSentinelURL(sentinel_url=args[0])
-            broker_transport_options = kwargs.get("broker_transport_options")
             sentinel_kwargs = broker_transport_options.get("sentinel_kwargs")
 
             sentinel = Sentinel(sentinel_config.sentinels,
