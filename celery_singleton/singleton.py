@@ -148,5 +148,7 @@ class Singleton(BaseTask):
     def on_success(self, retval, task_id, args, kwargs):
         self.release_lock(task_args=args, task_kwargs=kwargs)
 
-    def on_retry(self, exc, task_id, args, kwargs, einfo):
-        self.release_lock(task_args=args, task_kwargs=kwargs)
+    def retry(self, *args, **kwargs):
+        self.release_lock(task_args=self.request.args, task_kwargs=self.request.kwargs)
+        return super(Singleton, self).retry(*args, **kwargs)
+        
